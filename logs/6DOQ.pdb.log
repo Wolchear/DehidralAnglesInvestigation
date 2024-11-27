@@ -1,0 +1,60 @@
++ directory-metadata
++ whoami
+wolchear
++ hostname -f
+Ubuntu.myguest.virtualbox.org
++ pwd
+/home/wolchear/Desktop/bioInfIII/2assigment/working_copy/software_investigations/trunk
++ set +x
++ svnversion
+30M
++ svn info
+Path: .
+Working Copy Root Path: /home/wolchear/Desktop/bioInfIII/2assigment/working_copy
+URL: file:///home/wolchear/Desktop/bioInfIII/2assigment/pdbx-NA-torison-G-X/software_investigations/trunk
+Relative URL: ^/software_investigations/trunk
+Repository Root: file:///home/wolchear/Desktop/bioInfIII/2assigment/pdbx-NA-torison-G-X
+Repository UUID: 66f5417e-3dde-4fec-bdca-e80d95b29715
+Revision: 30
+Node Kind: directory
+Schedule: normal
+Last Changed Author: wolchear
+Last Changed Rev: 30
+Last Changed Date: 2024-05-28 23:02:25 +0300 (Tue, 28 May 2024)
+
++ df -h .
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda3        40G   37G  1.1G  98% /
++ type osname
+osname: not found
++ uname -a
+Linux Ubuntu 6.5.0-35-generic #35~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue May  7 09:00:52 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
++ date
+Mon  3 Jun 16:00:57 EEST 2024
++ wget -O inputs/6DOQ.pdb http://www.rcsb.org/pdb/files/6DOQ.pdb
+URL transformed to HTTPS due to an HSTS policy
+--2024-06-03 16:00:57--  https://www.rcsb.org/pdb/files/6DOQ.pdb
+Resolving www.rcsb.org (www.rcsb.org)... 128.6.159.248
+Connecting to www.rcsb.org (www.rcsb.org)|128.6.159.248|:443... connected.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: https://files.rcsb.org/download/6DOQ.pdb [following]
+--2024-06-03 16:00:57--  https://files.rcsb.org/download/6DOQ.pdb
+Resolving files.rcsb.org (files.rcsb.org)... 128.6.159.100
+Connecting to files.rcsb.org (files.rcsb.org)|128.6.159.100|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [application/octet-stream]
+Saving to: ‘inputs/6DOQ.pdb’
+
+     0K .......... .......... .......... .......... ..........  241K
+    50K .......... .......... .......... .......... ..........  508K
+   100K .......... .......... .......... .......... .......... 5.51M
+   150K .......... .......... .......... .......... .......... 1.98M
+   200K .......... .......... .......... .......... ..........  640K
+   250K .......... .......... .......... .......... .......... 7.00M
+   300K .......... .......... .......... .......... ..........  542K
+   350K .......... .......... .......... .......... .....      4.31M=0.5s
+
+2024-06-03 16:00:58 (751 KB/s) - ‘inputs/6DOQ.pdb’ saved [405324]
+
++ date -Imin
+2024-06-03T16:00+03:00

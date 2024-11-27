@@ -1,0 +1,416 @@
+#!/usr/bin/perl
+# Nikita Pavliukovec Bioinformatika Ig. IIIk.
+# This program calculates dihedral angles in pdb/pdbx files.
+# It computes two types of angles: gamma and chi.
+# The program can process both individual pdb/pdbx files and
+# mixed streams of files. Additionally, it supports data input from STDIN.
+# output: STDOUT in TSV format.
+# χ (chi)	pyrimidines:O4′-C1′-N1-C2 | purines:O4′-C1′-N9-C4
+# γ (gamma)	O5'-C5'-C4'-C3'
+### Usage #########################################
+# pdbx-NA-torison-GX file1.pdb
+# pdbx-NA-torison-GX file1.pdb file2.pdbx
+### ################################################
+
+use strict;
+use warnings;
+use Math::Trig;
+use File::Basename;
+# Angles calculations ##############################
+# Formula from: https://en.wikipedia.org/wiki/Dihedral_angle
+sub calculate_vector_length
+{
+	my ($vector1) =@_;
+	my $x = $vector1->{'x_cords'};
+	my $y = $vector1->{'y_cords'};
+	my $z = $vector1->{'z_cords'};
+	
+	return sqrt($x**2 + $y**2 + $z**2);
+}
+
+sub calculate_bond_vector
+{
+	my ($vector1, $vector2) =@_;
+	my %bond_vector = (
+	'x_cords' => $vector1->{'x_cords'} - $vector2->{'x_cords'},
+	'y_cords' => $vector1->{'y_cords'} - $vector2->{'y_cords'},
+	'z_cords' => $vector1->{'z_cords'} - $vector2->{'z_cords'}
+	);
+	return \%bond_vector
+}
+
+sub calculate_cross_product
+{
+	my ($vector1, $vector2) =@_;
+	my %cross_vector = (
+	'x_cords' => $vector1->{'y_cords'} * $vector2->{'z_cords'} -
+			$vector1->{'z_cords'} * $vector2->{'y_cords'},
+	'y_cords' => $vector1->{'z_cords'} * $vector2->{'x_cords'} -
+			$vector1->{'x_cords'} * $vector2->{'z_cords'},
+	'z_cords' => $vector1->{'x_cords'} * $vector2->{'y_cords'} -
+			$vector1->{'y_cords'} * $vector2->{'x_cords'}
+	);
+	return \%cross_vector
+}
+
+sub calculate_scalar_product
+{
+	my ($vector1, $vector2) =@_;
+	my $product = $vector1->{'x_cords'} * $vector2->{'x_cords'} +
+			$vector1->{'y_cords'} * $vector2->{'y_cords'} +
+			$vector1->{'z_cords'} * $vector2->{'z_cords'};
+
+	return $product
+}
+
+sub calculate_dihedral
+{
+
+	my ($atom1, $atom2, $atom3, $atom4) = @_;
+	my $u1_ref = calculate_bond_vector($atom2, $atom1);
+	my $u2_ref = calculate_bond_vector($atom3, $atom2);
+	my $u3_ref = calculate_bond_vector($atom4, $atom3);
+
+	my $u1_u2_cross = calculate_cross_product($u1_ref, $u2_ref);
+	my $u2_u3_croos = calculate_cross_product($u2_ref, $u3_ref);
+
+	my $u2_length = calculate_vector_length($u2_ref);
+
+	my $x = $u2_length * calculate_scalar_product($u2_u3_croos,$u1_ref);
+	my $y = calculate_scalar_product($u1_u2_cross, $u2_u3_croos);
+
+    	my $angle = atan2($x, $y);
+
+	return (180 / pi) * $angle
+}
+##################################################
+
+### Data read from different files ###############
+sub read_pdb
+{
+	my ($line) = @_;
+	my $atom_name = substr($line,13,3);
+	my $resudal_name = substr($line,18,2);
+	my $chain = substr($line,21,1);
+	my $res_seq_number = substr($line,23,3);
+	my $x = substr($line,31,7);
+	my $y = substr($line,39,7);
+	my $z = substr($line,47,7);
+	$atom_name =~ s/\s+//g;
+	$resudal_name =~ s/\s+//g;
+	$chain =~ s/\s+//g;
+	$res_seq_number =~ s/\s+//g;
+	$x =~ s/\s+//g;
+	$y =~ s/\s+//g;
+	$z =~ s/\s+//g;
+	return $atom_name, $resudal_name, $chain,$res_seq_number,$x,$y,$z;
+}
+
+sub read_cif
+{
+	my ($line) = @_;
+	my @line_data = split(/\s+/, $line);
+	my $atom_name = $line_data[3];
+	$atom_name =~s/"//g;
+	my $resudal_name = $line_data[5];
+	my $chain = $line_data[6];
+	my $res_seq_number = $line_data[8];
+	my $x = $line_data[10];
+	my $y = $line_data[11];
+	my $z = $line_data[12];
+	return $atom_name, $resudal_name, $chain,$res_seq_number,$x,$y,$z;
+}
+##########################################################################
+
+### Trying to figure out if chi or\and gamma could been calulated ########
+sub if_exists_chi
+{
+	my ($structure_ref) = @_;
+	my $chain = $structure_ref->{'chain'};
+	my $res_num = $structure_ref->{'res_number'};
+	my $type = $structure_ref->{'type'};
+	my $file = $structure_ref->{'file'};
+	my $ifCouldNotCalculate =0;
+	my @warnMessege;
+	my $missingAtoms=0;
+	if( !$structure_ref->{"O4'"} )
+	{
+		push @warnMessege, "Could not find 04' atom in file: $file;chain: $chain;residue number: $res_num";
+		$ifCouldNotCalculate =1;
+		$missingAtoms++;
+	}
+	if( !$structure_ref->{"C1'"})
+	{
+		push @warnMessege, "Could not find C1' atom in file: $file;chain: $chain;residue number: $res_num";
+		$ifCouldNotCalculate =1;
+		$missingAtoms++;
+	}
+	if($type eq "purine")
+	{
+		if( !$structure_ref->{"N9"})
+		{
+			push @warnMessege, "Could not find N9 atom in file: $file;chain: $chain;residue number: $res_num";
+			$ifCouldNotCalculate =1;
+			$missingAtoms++;
+		}
+		if( !$structure_ref->{"C4"})
+		{
+			push @warnMessege, "Could not find C4 atom in file: $file;chain: $chain;residue number: $res_num";
+			$ifCouldNotCalculate =1;
+			$missingAtoms++;
+		}
+	}
+	else
+	{
+		if( !$structure_ref->{"N1"})
+		{
+			push @warnMessege, "Could not find N1 atom in file: $file;chain: $chain;residue number: $res_num";
+			$ifCouldNotCalculate =1;
+			$missingAtoms++;
+		}
+		if( !$structure_ref->{"C2"})
+		{
+			push @warnMessege, "Could not find C2 atom in file: $file;chain: $chain;residue number: $res_num";
+			$ifCouldNotCalculate =1;
+			$missingAtoms++;
+		}
+	}
+	if($missingAtoms == 4)
+	{
+		warn "Could not find any atom for chi angle calculation in file: $file;chain: $chain;residue number: $res_num";
+		return 0;
+	}
+	if($ifCouldNotCalculate)
+	{
+		foreach my $warn (@warnMessege)
+		{
+			warn "$warn";
+		}
+		return 0;
+	}
+	if($ifCouldNotCalculate)
+	{
+		return 0;
+	}
+	return 1
+}
+
+sub if_exists_gamma
+{
+	my ($structure_ref) =@_;
+	my $chain = $structure_ref->{'chain'};
+	my $res_num = $structure_ref->{'res_number'};
+	my $file = $structure_ref->{'file'};
+	my $ifCouldNotCalculate =0;
+	my $missingAtoms =0;
+	my @warnMessege;
+	if( !$structure_ref->{"O5'"} )
+	{
+		push @warnMessege, "Could not find 05' atom in file: $file;chain: $chain;residue number: $res_num";
+		$ifCouldNotCalculate =1;
+		$missingAtoms++;
+	}
+	if( !$structure_ref->{"C5'"})
+	{
+		push @warnMessege,  "Could not find C5' atom in file: $file;chain: $chain;residue number: $res_num";
+		$ifCouldNotCalculate =1;
+		$missingAtoms++;
+	}
+	if( !$structure_ref->{"C4'"})
+	{
+		push @warnMessege,  "Could not find C4' atom in file: $file;chain: $chain;residue number: $res_num";
+		$ifCouldNotCalculate =1;
+		$missingAtoms++;
+	}
+	if( !$structure_ref->{"C3'"})
+	{
+		push @warnMessege, "Could not find C3' atom in file: $file;chain: $chain;residue number: $res_num";
+		$ifCouldNotCalculate =1;
+		$missingAtoms++;
+	}
+	if($missingAtoms == 4)
+	{
+		warn "Could not find any atom for gamma angle calculation in file: $file;chain: $chain;residue number: $res_num";
+		return 0;
+	}
+	if($ifCouldNotCalculate)
+	{
+		foreach my $warn (@warnMessege)
+		{
+			warn "$warn";
+		}
+		return 0;
+	}
+	return 1
+}
+##################################################
+### Functions to generate output header and lines
+sub generate_otput_header
+{
+	my $Id = '#$Id: pdbx-NA-torison-GX 32 2024-06-03 20:22:34Z wolchear $';
+	chop($Id);
+	my $output = $Id . "\n";
+	$output .= "keyword\tangle1\tangle2\tDATAID\tchain\tresname\tresnum\tfile\n";
+	return $output
+}
+
+sub generate_outut_line
+{
+	my($structure_ref, $angle1, $angle2, $file_id, $file_name) =@_;
+	my $keyword = "NAGX\t";
+	my $G;
+	my $X;
+	if($angle1 ne '')
+	{
+		$G = sprintf("%.2f", $angle1) . "\t";
+	}
+	else
+	{
+		$G = $angle1 . "\t";
+	}
+	if($angle2 ne '')
+	{
+		$X = sprintf("%.2f", $angle2) . "\t";
+	}
+	else
+	{
+		$X = $angle2 . "\t";
+	}
+	my $data_id = "$file_id\t";
+	my $chain = $structure_ref->{'chain'} . "\t";
+	my $resname = $structure_ref->{'resudal_name'} . "\t";
+	my $resnum = $structure_ref->{'res_number'} . "\t";
+	
+	my $output_line = $keyword . $G . $X . $data_id . $chain . $resname . $resnum . "$file_name\n";
+	return $output_line
+}
+######################################################################
+### To calculate chi for purines and pyrimidines we use different atoms
+### This why we have to check base type
+### https://proteopedia.org/wiki/index.php/Standard_Residues
+my %bases = (	'DA' => 'purine',
+		'DG' => 'purine',
+		'DC' => 'pyrimidine',
+		'DT' => 'pyrimidine',
+		'DU' => 'pyrimidine',
+		'A' => 'purine',
+		'G' => 'purine',
+		'C' => 'pyrimidine',
+		'U' => 'pyrimidine');
+
+my %structure;
+my $file_type='';
+my $file_id='-';
+my $current_resudual="";
+my $first_atom = 1;
+my $output =generate_otput_header;
+my ($atom_name, $resudal_name, $chain,$res_number,$x,$y,$z);
+### Target atoms regex for angles
+my $traget_atoms_cif = '("O5\'"|"C5\'"|"C4\'"|"C3\'"|"O4\'"|"C1\'"|N9|N1|C4|C2)';
+my $traget_atoms_pdb = '(O5\'|C5\'|C4\'|C3\'|O4\'|C1\'|N9 |N1 |C4 |C2 )';
+### Target bases
+my $target_molecules = '(DA|DC|DT|DG|DU| A| C| U| G)';
+while(my $line = <>)
+{
+	if($line =~ /^HEADER.{53}\s+(.{4}).+/)
+	{
+		$file_id  = $1;
+		$file_type = "PDB";
+		$first_atom = 1;
+	}
+	if($line =~ /^CRYST1/)
+	{
+		$file_type = "PDB";
+		$first_atom = 1;
+	}
+	if($line =~ /data_([A-Z\d]{4})\n/)
+	{
+		$file_type = "CIF";
+		$file_id  = $1;
+		$first_atom = 1;
+	}
+	next if ($line !~ /^ATOM|^HETATM/);
+	if($file_type eq "")
+	{
+		warn "Unable to determine the file type, HEADER|CRYST1 or data_ is missing for identification. $ARGV";
+		if(length($line) == 81)
+		{
+			warn "ATOM|HETATM line length is equal 80, in this way, file will be interpreted as PDB file. $ARGV";
+			$file_type = "PDB";
+		}
+		else
+		{
+			warn "File will be interpreted as PDBx file. $ARGV";
+			$file_type = "CIF";
+		}
+	}
+	if($file_type eq "CIF")
+	{
+		next if ($line !~ /\s+[^\s+]+\s+[^\s+]+\s+$traget_atoms_cif\s+[^\s+]+\s+$target_molecules.+/);
+		($atom_name, $resudal_name, $chain,$res_number,$x,$y,$z) = read_cif($line);
+	}
+	if($file_type eq "PDB")
+	{
+		next if ($line !~ /.+$traget_atoms_pdb.{2}$target_molecules/);
+		($atom_name, $resudal_name, $chain,$res_number,$x,$y,$z) = read_pdb($line);
+	}
+	if($first_atom)
+	{
+		$current_resudual = $res_number;
+		$structure{"resudal_name"} = $resudal_name;
+		$structure{"chain"} = $chain;
+		$structure{"res_number"} = $res_number;
+		$structure{"type"} = $bases{$resudal_name};
+		$structure{"file"} = $ARGV;
+		$first_atom =0;
+	}
+	#### If found new resudual => trying to calculate angles.
+	if($current_resudual ne $res_number)
+	{
+		my $angle1 = '';
+		my $angle2 = '';
+		if(if_exists_gamma(\%structure))
+		{
+			$angle1 = calculate_dihedral(
+					$structure{"O5'"},
+					$structure{"C5'"},
+					$structure{"C4'"},
+					$structure{"C3'"});
+				
+		}
+		if(if_exists_chi(\%structure))
+		{
+			if($structure{'type'} eq "purine")
+			{
+				$angle2 = calculate_dihedral(
+					$structure{"O4'"},
+					$structure{"C1'"},
+					$structure{"N9"},
+					$structure{"C4"});
+			}
+			else
+			{
+				$angle2 = calculate_dihedral(
+					$structure{"O4'"},
+					$structure{"C1'"},
+					$structure{"N1"},
+					$structure{"C2"});
+			}
+		}
+		if($angle1 ne '' and $angle2 ne '')
+		{
+			$output.= generate_outut_line(\%structure, $angle1, $angle2, $file_id, $ARGV);
+		}
+		$first_atom = 1;
+		%structure=();
+	}
+	$structure{"$atom_name"}->{x_cords} = $x;
+	$structure{"$atom_name"}->{y_cords} = $y;
+	$structure{"$atom_name"}->{z_cords} = $z;
+	if(eof)
+	{
+		$file_type = "";
+		$file_id = "-";
+	}
+}
+print $output;

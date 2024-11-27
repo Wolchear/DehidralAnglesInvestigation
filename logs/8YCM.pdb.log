@@ -1,0 +1,69 @@
++ directory-metadata
++ whoami
+wolchear
++ hostname -f
+Ubuntu.myguest.virtualbox.org
++ pwd
+/home/wolchear/Desktop/bioInfIII/2assigment/working_copy/software_investigations/trunk
++ set +x
++ svnversion
+30M
++ svn info
+Path: .
+Working Copy Root Path: /home/wolchear/Desktop/bioInfIII/2assigment/working_copy
+URL: file:///home/wolchear/Desktop/bioInfIII/2assigment/pdbx-NA-torison-G-X/software_investigations/trunk
+Relative URL: ^/software_investigations/trunk
+Repository Root: file:///home/wolchear/Desktop/bioInfIII/2assigment/pdbx-NA-torison-G-X
+Repository UUID: 66f5417e-3dde-4fec-bdca-e80d95b29715
+Revision: 30
+Node Kind: directory
+Schedule: normal
+Last Changed Author: wolchear
+Last Changed Rev: 30
+Last Changed Date: 2024-05-28 23:02:25 +0300 (Tue, 28 May 2024)
+
++ df -h .
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda3        40G   37G  1.1G  98% /
++ type osname
+osname: not found
++ uname -a
+Linux Ubuntu 6.5.0-35-generic #35~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue May  7 09:00:52 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
++ date
+Mon  3 Jun 16:03:17 EEST 2024
++ wget -O inputs/8YCM.pdb http://www.rcsb.org/pdb/files/8YCM.pdb
+URL transformed to HTTPS due to an HSTS policy
+--2024-06-03 16:03:17--  https://www.rcsb.org/pdb/files/8YCM.pdb
+Resolving www.rcsb.org (www.rcsb.org)... 128.6.159.248
+Connecting to www.rcsb.org (www.rcsb.org)|128.6.159.248|:443... connected.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: https://files.rcsb.org/download/8YCM.pdb [following]
+--2024-06-03 16:03:18--  https://files.rcsb.org/download/8YCM.pdb
+Resolving files.rcsb.org (files.rcsb.org)... 128.6.159.100
+Connecting to files.rcsb.org (files.rcsb.org)|128.6.159.100|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [application/octet-stream]
+Saving to: ‘inputs/8YCM.pdb’
+
+     0K .......... .......... .......... .......... ..........  247K
+    50K .......... .......... .......... .......... ..........  481K
+   100K .......... .......... .......... .......... .......... 7.46M
+   150K .......... .......... .......... .......... .......... 53.2M
+   200K .......... .......... .......... .......... ..........  487K
+   250K .......... .......... .......... .......... .......... 5.70M
+   300K .......... .......... .......... .......... ..........  522K
+   350K .......... .......... .......... .......... .......... 7.76M
+   400K .......... .......... .......... .......... .......... 23.7M
+   450K .......... .......... .......... .......... .......... 80.6M
+   500K .......... .......... .......... .......... .......... 30.7M
+   550K .......... .......... .......... .......... ..........  521K
+   600K .......... .......... .......... .......... .......... 4.67M
+   650K .......... .......... .......... .......... .......... 38.0M
+   700K .......... .......... .......... .......... .......... 31.6M
+   750K .......... .......... .......... .......... .......... 16.4M
+   800K .......... .......... .......... .....                  243M=0.6s
+
+2024-06-03 16:03:18 (1.27 MB/s) - ‘inputs/8YCM.pdb’ saved [855765]
+
++ date -Imin
+2024-06-03T16:03+03:00
